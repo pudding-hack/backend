@@ -14,8 +14,8 @@ type service interface {
 	GetByID(ctx context.Context, id int) (use_case.Item, error)
 	Create(ctx context.Context, item item.Item) error
 	GetItemHistoryPaginate(ctx context.Context, id string, request lib.PaginationRequest) (response use_case.GetHistoryResponse, err error)
-	InboundItem(ctx context.Context, name string, qty int) (err error)
-	OutboundItem(ctx context.Context, name string, qty int) (err error)
+	InboundItem(ctx context.Context, id int, qty int) (err error)
+	OutboundItem(ctx context.Context, id int, qty int) (err error)
 	DetectLabels(ctx context.Context, imageBase64 string) (res use_case.Item, err error)
 }
 
@@ -95,8 +95,8 @@ func (h *Handler) InboundItem(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	type request struct {
-		Name string `json:"name"`
-		Qty  int    `json:"qty"`
+		Id  int `json:"id"`
+		Qty int `json:"qty"`
 	}
 
 	var req request
@@ -106,7 +106,7 @@ func (h *Handler) InboundItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.service.InboundItem(ctx, req.Name, req.Qty)
+	err = h.service.InboundItem(ctx, req.Id, req.Qty)
 	if err != nil {
 		lib.WriteResponse(w, err, nil)
 		return
@@ -119,8 +119,8 @@ func (h *Handler) OutboundItem(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	type request struct {
-		Name string `json:"name"`
-		Qty  int    `json:"qty"`
+		Id  int `json:"id"`
+		Qty int `json:"qty"`
 	}
 
 	var req request
@@ -130,7 +130,7 @@ func (h *Handler) OutboundItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.service.OutboundItem(ctx, req.Name, req.Qty)
+	err = h.service.OutboundItem(ctx, req.Id, req.Qty)
 	if err != nil {
 		lib.WriteResponse(w, err, nil)
 		return

@@ -21,6 +21,7 @@ type inventoryRepository interface {
 	Create(ctx context.Context, item item.Item) error
 	UpdateQuantity(ctx context.Context, id, qty int) error
 	GetByName(ctx context.Context, name string) (item.Item, error)
+	GetByKeyword(ctx context.Context, keyword string) (item.Item, error)
 }
 
 type unitRepository interface {
@@ -181,7 +182,7 @@ func (s *service) GetItemHistoryPaginate(ctx context.Context, id string, request
 	return response, nil
 }
 
-func (s *service) InboundItem(ctx context.Context, name string, qty int) (err error) {
+func (s *service) InboundItem(ctx context.Context, id int, qty int) (err error) {
 	s.WithTransaction()
 
 	defer func() {
@@ -201,7 +202,7 @@ func (s *service) InboundItem(ctx context.Context, name string, qty int) (err er
 
 	user := lib.GetUserContext(ctx)
 
-	item, err := s.repo.GetByName(ctx, name)
+	item, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, lib.ErrSqlErrorNotFound) {
 			return lib.NewErrNotFound("Item not found")
@@ -234,7 +235,7 @@ func (s *service) InboundItem(ctx context.Context, name string, qty int) (err er
 	return nil
 }
 
-func (s *service) OutboundItem(ctx context.Context, name string, qty int) (err error) {
+func (s *service) OutboundItem(ctx context.Context, id int, qty int) (err error) {
 	s.WithTransaction()
 
 	defer func() {
@@ -254,7 +255,7 @@ func (s *service) OutboundItem(ctx context.Context, name string, qty int) (err e
 
 	user := lib.GetUserContext(ctx)
 
-	item, err := s.repo.GetByName(ctx, name)
+	item, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return
 	}
@@ -306,21 +307,28 @@ func (s *service) DetectLabels(ctx context.Context, imageBase64 string) (res Ite
 	var label string
 
 	for _, l := range resp.Labels {
-		if *l.Confidence > 90 {
+		if *l.Confidence > 93 {
 			label = *l.Name
-			break
+			log.Println("Label: ", label, "Confidence: ", *l.Confidence)
+
+			res, err = s.GetItemByKeyword(ctx, label)
+			if err != nil {
+				if errors.Is(err, lib.ErrSqlErrorNotFound) {
+					continue
+				}
+				return
+			}
+			return
 		}
+
 	}
 
-	if label == "" {
-		return res, lib.NewErrNotFound("Label not found")
-	}
+	return res, lib.NewErrNotFound("Item not found")
+}
 
-	item, err := s.repo.GetByName(ctx, label)
+func (s *service) GetItemByKeyword(ctx context.Context, keyword string) (data Item, err error) {
+	item, err := s.repo.GetByKeyword(ctx, keyword)
 	if err != nil {
-		if errors.Is(err, lib.ErrSqlErrorNotFound) {
-			return Item{}, lib.NewErrNotFound(label + " not found")
-		}
 		return
 	}
 
@@ -329,8 +337,8 @@ func (s *service) DetectLabels(ctx context.Context, imageBase64 string) (res Ite
 		return
 	}
 
-	res.FromEntity(item)
-	res.Unit = unit.UnitName
+	data.FromEntity(item)
+	data.Unit = unit.UnitName
 
-	return res, nil
+	return data, nil
 }
