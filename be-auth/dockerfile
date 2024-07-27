@@ -4,6 +4,7 @@ WORKDIR /app
 COPY ./go.work ./go.work
 COPY ./go.work.sum ./go.work.sum
 COPY ./lib ./lib
+COPY ./be-inventory ./be-inventory
 COPY ./be-auth ./be-auth
 COPY ./conn ./conn
 

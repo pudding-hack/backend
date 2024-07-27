@@ -43,6 +43,26 @@ services:
       REDIS_HOST: "redis"
       REDIS_PORT: "6379"
       REDIS_PASSWORD: ""
+  
+  inventory-service:
+    hostname: inventory-service-host
+    build:
+      context: .
+      dockerfile: ./be-inventory/Dockerfile
+    restart: on-failure
+    networks:
+      - local
+    volumes:
+      - ./be-inventory/cmd/config.yml:/cmd/config.yml
+    depends_on:
+      - redis
+    environment:
+      APP_NAME: "inventory-rest-service"
+      HTTP_PORT: "80"
+      DB_DSN: "postgres://pudinghack:pdhack27@localhost:5432/sightry?sslmode=disable"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ""
 
 networks:
   local:
