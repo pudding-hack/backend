@@ -50,7 +50,7 @@ func (r *repository) GetByID(ctx context.Context, id int) (Item, error) {
 }
 
 func (r *repository) Create(ctx context.Context, item Item) error {
-	query := "INSERT INTO items (item_code, item_name, qty, unit, price, keywords, created_by, updated_by) VALUES ($1, $2, $3, $4, $5, $6, $7, &8) RETURNING id"
+	query := "INSERT INTO items (item_code, item_name, qty, unit, price, keywords, created_by, updated_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id"
 	err := r.db.Get(ctx, &item.ID, query, item.ItemCode, item.ItemName, item.Quantity, item.UnitId, item.Price, item.Keywords, item.CreatedBy, item.UpdatedBy)
 	if err != nil {
 		return err
