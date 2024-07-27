@@ -16,7 +16,7 @@ import (
 func main() {
 	cfg := lib.LoadConfigByFile("./cmd", "config", "yml")
 
-	awscfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("ap-southeast-1")) // Replace with your desired AWS region
+	awscfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("ap-southeast-1"))
 	if err != nil {
 		log.Fatalf("Failed to load AWS configuration: %v", err)
 	}

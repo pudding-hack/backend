@@ -2,6 +2,7 @@ package lib
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -14,7 +15,7 @@ func ConvertBase64ToImage(base64Data string) ([]byte, error) {
 	} else if strings.Contains(base64Data, "data:image/jpeg;base64,") {
 		imageFormat = "jpeg"
 	} else {
-		return nil, fmt.Errorf("Format gambar tidak didukung")
+		return nil, errors.New("invalid image format")
 	}
 
 	base64Data = strings.Replace(base64Data, fmt.Sprintf("data:image/%s;base64,", imageFormat), "", 1)
