@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go-v2/service/rekognition"
+	"github.com/aws/aws-sdk-go-v2/service/rekognition/types"
 	"github.com/pudding-hack/backend/be-inventory/internal/model/history"
 	"github.com/pudding-hack/backend/be-inventory/internal/model/item"
 	"github.com/pudding-hack/backend/be-inventory/internal/model/unit"
@@ -38,25 +39,25 @@ type awsService interface {
 }
 
 type service struct {
-	cfg      *lib.Config
-	repo     inventoryRepository
-	unitRepo unitRepository
-	histRepo historyRepository
-	conn     *conn.SQLServerConnectionManager
-	db       *conn.SingleInstruction
-	tx       *conn.MultiInstruction
-  awsService awsService
+	cfg        *lib.Config
+	repo       inventoryRepository
+	unitRepo   unitRepository
+	histRepo   historyRepository
+	conn       *conn.SQLServerConnectionManager
+	db         *conn.SingleInstruction
+	tx         *conn.MultiInstruction
+	awsService awsService
 }
 
 func NewService(sql *conn.SQLServerConnectionManager, cfg *lib.Config, awsService awsService) *service {
 	return &service{
-		cfg:      cfg,
-		db:       sql.GetQuery(),
-		conn:     sql,
-		repo:     item.New(cfg, sql.GetQuery()),
-		unitRepo: unit.New(cfg, sql.GetQuery()),
-		histRepo: history.New(cfg, sql.GetQuery()),
-    awsService: awsService,
+		cfg:        cfg,
+		db:         sql.GetQuery(),
+		conn:       sql,
+		repo:       item.New(cfg, sql.GetQuery()),
+		unitRepo:   unit.New(cfg, sql.GetQuery()),
+		histRepo:   history.New(cfg, sql.GetQuery()),
+		awsService: awsService,
 	}
 }
 
@@ -274,4 +275,57 @@ func (s *service) OutboundItem(ctx context.Context, name string, qty int) (err e
 	}
 
 	return nil
+}
+
+func (s *service) DetectLabels(ctx context.Context, imageBase64 string) (res Item, err error) {
+	image, err := lib.ConvertBase64ToImage(imageBase64)
+	if err != nil {
+		return
+	}
+
+	params := &rekognition.DetectLabelsInput{
+		Image: &types.Image{
+			Bytes: image,
+		},
+	}
+
+	resp, err := s.awsService.DetectLabels(ctx, params)
+	if err != nil {
+		return
+	}
+
+	if len(resp.Labels) == 0 {
+		return res, lib.NewErrNotFound("Label not found")
+	}
+
+	var label string
+
+	for _, l := range resp.Labels {
+		if *l.Confidence > 90 {
+			label = *l.Name
+			break
+		}
+	}
+
+	if label == "" {
+		return res, lib.NewErrNotFound("Label not found")
+	}
+
+	item, err := s.repo.GetByName(ctx, label)
+	if err != nil {
+		if errors.Is(err, lib.ErrSqlErrorNotFound) {
+			return Item{}, lib.NewErrNotFound(label + " not found")
+		}
+		return
+	}
+
+	unit, err := s.unitRepo.GetUnitById(ctx, item.UnitId)
+	if err != nil {
+		return
+	}
+
+	res.FromEntity(item)
+	res.Unit = unit.UnitName
+
+	return res, nil
 }

@@ -16,6 +16,7 @@ type service interface {
 	GetItemHistoryPaginate(ctx context.Context, id string, request lib.PaginationRequest) (response use_case.GetHistoryResponse, err error)
 	InboundItem(ctx context.Context, name string, qty int) (err error)
 	OutboundItem(ctx context.Context, name string, qty int) (err error)
+	DetectLabels(ctx context.Context, imageBase64 string) (res use_case.Item, err error)
 }
 
 type Handler struct {
@@ -136,4 +137,27 @@ func (h *Handler) OutboundItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	lib.WriteResponse(w, nil, nil)
+}
+
+func (h *Handler) DetectLabels(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	type request struct {
+		ImageBase64 string `json:"image_base64"`
+	}
+
+	var req request
+	err := lib.ReadRequest(r, &req)
+	if err != nil {
+		lib.WriteResponse(w, err, nil)
+		return
+	}
+
+	res, err := h.service.DetectLabels(ctx, req.ImageBase64)
+	if err != nil {
+		lib.WriteResponse(w, err, nil)
+		return
+	}
+
+	lib.WriteResponse(w, nil, res)
 }
