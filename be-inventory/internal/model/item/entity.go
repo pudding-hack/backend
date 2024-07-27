@@ -5,7 +5,7 @@ import (
 )
 
 type Item struct {
-	ID        string     `json:"id" db:"id"`
+	ID        int        `json:"id" db:"id"`
 	ItemCode  string     `json:"item_code" db:"item_code"`
 	ItemName  string     `json:"item_name" db:"item_name"`
 	Quantity  int        `json:"qty" db:"qty"`

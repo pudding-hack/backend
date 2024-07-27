@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/pudding-hack/backend/be-inventory/cmd/rest"
+	"github.com/pudding-hack/backend/be-inventory/internal/model/history"
 	"github.com/pudding-hack/backend/be-inventory/internal/model/item"
 	"github.com/pudding-hack/backend/be-inventory/internal/model/unit"
 	"github.com/pudding-hack/backend/be-inventory/internal/use_case"
@@ -32,7 +33,8 @@ func main() {
 		ctx := context.Background()
 		inventoryRepository := item.New(cfg, connQuery)
 		unitRepository := unit.New(cfg, connQuery)
-		inventoryService := use_case.NewService(cfg, inventoryRepository, unitRepository)
+		historyRepository := history.New(cfg, connQuery)
+		inventoryService := use_case.NewService(cfg, inventoryRepository, unitRepository, historyRepository)
 		requestHandler := rest.NewHandler(inventoryService)
 
 		err := rest.Run(ctx, *cfg, requestHandler)

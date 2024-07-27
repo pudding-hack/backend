@@ -1,11 +1,13 @@
 package use_case
 
 import (
+	"github.com/pudding-hack/backend/be-inventory/internal/model/history"
 	"github.com/pudding-hack/backend/be-inventory/internal/model/item"
+	"github.com/pudding-hack/backend/lib"
 )
 
 type Item struct {
-	ID       string  `json:"id"`
+	ID       int     `json:"id"`
 	ItemCode string  `json:"item_code"`
 	ItemName string  `json:"item_name"`
 	Quantity int     `json:"qty"`
@@ -22,4 +24,25 @@ func (i *Item) FromEntity(entity item.Item, unit string) {
 	i.UnitId = entity.UnitId
 	i.Unit = unit
 	i.Price = entity.Price
+}
+
+type GetHistoryResponse struct {
+	Data []HistoryItem  `json:"data"`
+	Meta lib.Pagination `json:"meta"`
+}
+
+type HistoryItem struct {
+	ID       int    `json:"id"`
+	ItemId   int    `json:"item_id"`
+	Quantity int    `json:"qty"`
+	TypeId   int    `json:"type_id"`
+	Type     string `json:"type"`
+}
+
+func (h *HistoryItem) FromEntity(entity history.HistoryItem, typeName string) {
+	h.ID = entity.ID
+	h.ItemId = entity.ItemId
+	h.Quantity = entity.Quantity
+	h.TypeId = entity.TypeId
+	h.Type = typeName
 }

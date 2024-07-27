@@ -29,7 +29,7 @@ func (r *repository) GetAll(ctx context.Context) (res []Item, err error) {
 	return item, nil
 }
 
-func (r *repository) GetByID(ctx context.Context, id string) (Item, error) {
+func (r *repository) GetByID(ctx context.Context, id int) (Item, error) {
 	var item Item
 	err := r.db.Get(ctx, &item, "SELECT * FROM items WHERE id = $1 AND deleted_at is NULL", id)
 	if err != nil {

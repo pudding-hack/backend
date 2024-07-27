@@ -18,6 +18,7 @@ type handler interface {
 	GetAll(w http.ResponseWriter, r *http.Request)
 	GetById(w http.ResponseWriter, r *http.Request)
 	Create(w http.ResponseWriter, r *http.Request)
+	GetItemHistoryPaginate(w http.ResponseWriter, r *http.Request)
 }
 
 func Run(ctx context.Context, cfg lib.Config, requestHandler handler) error {
@@ -33,6 +34,9 @@ func Run(ctx context.Context, cfg lib.Config, requestHandler handler) error {
 	inventory.HandleFunc("/", requestHandler.GetAll).Methods(http.MethodGet)
 	inventory.HandleFunc("/detail", requestHandler.GetById).Methods(http.MethodGet)
 	inventory.HandleFunc("/create", requestHandler.Create).Methods(http.MethodPost)
+
+	// history handler
+	inventory.HandleFunc("/history", requestHandler.GetItemHistoryPaginate).Methods(http.MethodGet)
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:     []string{"*"},
