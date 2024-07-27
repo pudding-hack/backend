@@ -11,6 +11,7 @@ type Item struct {
 	Quantity  int        `json:"qty" db:"qty"`
 	UnitId    int        `json:"unit" db:"unit"`
 	Price     float64    `json:"price" db:"price"`
+	Keywords  string     `json:"keywords" db:"keywords"`
 	CreatedAt time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at" db:"updated_at"`
 	DeletedAt *time.Time `json:"deleted_at" db:"deleted_at"`

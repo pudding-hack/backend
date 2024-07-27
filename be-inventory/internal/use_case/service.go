@@ -131,6 +131,11 @@ func (s *service) GetByID(ctx context.Context, id int) (Item, error) {
 }
 
 func (s *service) Create(ctx context.Context, item item.Item) error {
+	user := lib.GetUserContext(ctx)
+
+	item.CreatedBy = user.ID
+	item.UpdatedBy = user.ID
+
 	err := s.repo.Create(ctx, item)
 	if err != nil {
 		return err
