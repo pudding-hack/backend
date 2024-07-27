@@ -1,7 +1,7 @@
 BEGIN;
 
-CREATE TABLE history_types (
-    id serial primary key,
+CREATE TABLE roles (
+    id SERIAL PRIMARY KEY,
     name varchar(50),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
