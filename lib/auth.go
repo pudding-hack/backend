@@ -28,7 +28,7 @@ func ValidateCurrentUser(cfg APIConfig, r *http.Request) (*auth.User, error) {
 		}
 
 		return &auth.User{
-			ID:   0,
+			ID:   "",
 			Name: "System",
 		}, nil
 	}
