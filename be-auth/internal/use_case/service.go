@@ -2,6 +2,7 @@ package use_case
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/pudding-hack/backend/be-auth/internal/model"
@@ -33,6 +34,9 @@ func NewService(cfg *lib.Config, repo userRepository) *service {
 func (s *service) Login(ctx context.Context, username, password string) (res LoginResponse, err error) {
 	user, err := s.repo.GetUserByUsername(ctx, username)
 	if err != nil {
+		if errors.Is(err, lib.ErrSqlErrorNotFound) {
+			return res, lib.NewErrUnauthorized("invalid username")
+		}
 		return res, err
 	}
 
@@ -42,6 +46,10 @@ func (s *service) Login(ctx context.Context, username, password string) (res Log
 
 	role, err := s.repo.GetRoleByID(ctx, user.RoleID)
 	if err != nil {
+		if errors.Is(err, lib.ErrSqlErrorNotFound) {
+			return res, lib.NewErrUnauthorized("role not found")
+		}
+
 		return res, err
 	}
 

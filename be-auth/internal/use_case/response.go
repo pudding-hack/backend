@@ -11,7 +11,7 @@ type LoginResponse struct {
 type User struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
-	Address   string `json:"address"`
+	Phone     string `json:"phone"`
 	Username  string `json:"username"`
 	Email     string `json:"email"`
 	Role      Role   `json:"role"`
@@ -27,9 +27,9 @@ func fromModuleToUserResponse(user *model.User, role *model.Role) User {
 	return User{
 		ID:       user.ID,
 		Name:     user.Name,
-		Address:  user.Address,
 		Username: user.Username,
 		Email:    user.Email,
+		Phone:    user.Phone,
 		Role: Role{
 			ID:   role.ID,
 			Name: role.Name,
@@ -44,7 +44,6 @@ func fromModuleToLoginResponse(user *model.User, role *model.Role, accessToken, 
 		User: User{
 			ID:       user.ID,
 			Name:     user.Name,
-			Address:  user.Address,
 			Username: user.Username,
 			Email:    user.Email,
 			Role: Role{
