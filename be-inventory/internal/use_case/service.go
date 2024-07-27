@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/aws/aws-sdk-go-v2/service/rekognition"
 	"github.com/pudding-hack/backend/be-inventory/internal/model/history"
 	"github.com/pudding-hack/backend/be-inventory/internal/model/item"
 	"github.com/pudding-hack/backend/be-inventory/internal/model/unit"
@@ -32,6 +33,10 @@ type historyRepository interface {
 	GetHistoryTypeByIds(ctx context.Context, ids []int) (res []history.HistoryType, err error)
 }
 
+type awsService interface {
+	DetectLabels(ctx context.Context, params *rekognition.DetectLabelsInput, optFns ...func(*rekognition.Options)) (*rekognition.DetectLabelsOutput, error)
+}
+
 type service struct {
 	cfg      *lib.Config
 	repo     inventoryRepository
@@ -40,9 +45,10 @@ type service struct {
 	conn     *conn.SQLServerConnectionManager
 	db       *conn.SingleInstruction
 	tx       *conn.MultiInstruction
+  awsService awsService
 }
 
-func NewService(sql *conn.SQLServerConnectionManager, cfg *lib.Config) *service {
+func NewService(sql *conn.SQLServerConnectionManager, cfg *lib.Config, awsService awsService) *service {
 	return &service{
 		cfg:      cfg,
 		db:       sql.GetQuery(),
@@ -50,6 +56,7 @@ func NewService(sql *conn.SQLServerConnectionManager, cfg *lib.Config) *service 
 		repo:     item.New(cfg, sql.GetQuery()),
 		unitRepo: unit.New(cfg, sql.GetQuery()),
 		histRepo: history.New(cfg, sql.GetQuery()),
+    awsService: awsService,
 	}
 }
 
