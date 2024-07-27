@@ -1,6 +1,7 @@
 package use_case
 
 import (
+	"context"
 	"time"
 
 	"github.com/pudding-hack/backend/be-auth/internal/model"
@@ -8,13 +9,13 @@ import (
 )
 
 type userRepository interface {
-	GetUserByUsername(username string) (*model.User, error)
-	GetRoleByID(id int) (*model.Role, error)
-	StoredAccessTokenToRedis(token string, userID string) (err error)
-	StoredRefreshTokenToRedis(token string, userID string) (err error)
-	GetAccessTokenFromRedis(token string) (userID string, err error)
-	GetRefreshTokenFromRedis(token string) (userID string, err error)
-	DeleteAccessTokenFromRedis(token string) (err error)
+	GetUserByUsername(ctx context.Context, username string) (*model.User, error)
+	GetRoleByID(ctx context.Context, id int) (*model.Role, error)
+	StoredAccessTokenToRedis(ctx context.Context, token string, userID string) (err error)
+	StoredRefreshTokenToRedis(ctx context.Context, token string, userID string) (err error)
+	GetAccessTokenFromRedis(ctx context.Context, token string) (userID string, err error)
+	GetRefreshTokenFromRedis(ctx context.Context, token string) (userID string, err error)
+	DeleteAccessTokenFromRedis(ctx context.Context, token string) (err error)
 }
 
 type service struct {
@@ -29,8 +30,8 @@ func NewService(cfg *lib.Config, repo userRepository) *service {
 	}
 }
 
-func (s *service) Login(username, password string) (res LoginResponse, err error) {
-	user, err := s.repo.GetUserByUsername(username)
+func (s *service) Login(ctx context.Context, username, password string) (res LoginResponse, err error) {
+	user, err := s.repo.GetUserByUsername(ctx, username)
 	if err != nil {
 		return res, err
 	}
@@ -39,7 +40,7 @@ func (s *service) Login(username, password string) (res LoginResponse, err error
 		return res, lib.NewErrUnauthorized("invalid password")
 	}
 
-	role, err := s.repo.GetRoleByID(user.RoleID)
+	role, err := s.repo.GetRoleByID(ctx, user.RoleID)
 	if err != nil {
 		return res, err
 	}
@@ -49,20 +50,20 @@ func (s *service) Login(username, password string) (res LoginResponse, err error
 	if err != nil {
 		return res, lib.NewErrUnauthorized(err.Error())
 	}
-	go s.repo.StoredAccessTokenToRedis(accessToken, user.ID)
+	go s.repo.StoredAccessTokenToRedis(ctx, accessToken, user.ID)
 
 	claimsRefreshToken := lib.NewClaims(user.ID, user.Username, user.Email, s.cfg.App.Name, time.Now().Add(s.cfg.JWT.RefreshExpirationDuration))
 	refreshToken, err := lib.GenerateToken(claimsRefreshToken, s.cfg.JWT.SecretKey)
 	if err != nil {
 		return res, lib.NewErrUnauthorized(err.Error())
 	}
-	go s.repo.StoredRefreshTokenToRedis(refreshToken, user.ID)
+	go s.repo.StoredRefreshTokenToRedis(ctx, refreshToken, user.ID)
 
 	return fromModuleToLoginResponse(user, role, accessToken, refreshToken), nil
 }
 
-func (s *service) GetCurrentUser(accessToken string) (res User, err error) {
-	_, err = s.repo.GetAccessTokenFromRedis(accessToken)
+func (s *service) GetCurrentUser(ctx context.Context, accessToken string) (res User, err error) {
+	_, err = s.repo.GetAccessTokenFromRedis(ctx, accessToken)
 	if err != nil {
 		return res, lib.NewErrUnauthorized(lib.ErrTokenExpired)
 	}
@@ -72,12 +73,12 @@ func (s *service) GetCurrentUser(accessToken string) (res User, err error) {
 		return res, lib.NewErrUnauthorized(err.Error())
 	}
 
-	user, err := s.repo.GetUserByUsername(token.Username)
+	user, err := s.repo.GetUserByUsername(ctx, token.Username)
 	if err != nil {
 		return res, err
 	}
 
-	role, err := s.repo.GetRoleByID(user.RoleID)
+	role, err := s.repo.GetRoleByID(ctx, user.RoleID)
 	if err != nil {
 		return res, err
 	}
@@ -85,23 +86,23 @@ func (s *service) GetCurrentUser(accessToken string) (res User, err error) {
 	return fromModuleToUserResponse(user, role), nil
 }
 
-func (s *service) RefreshToken(refreshToken string) (res LoginResponse, err error) {
+func (s *service) RefreshToken(ctx context.Context, refreshToken string) (res LoginResponse, err error) {
 	token, err := lib.ParseToken(refreshToken, s.cfg.JWT.SecretKey)
 	if err != nil {
 		return res, lib.NewErrUnauthorized(err.Error())
 	}
 
-	_, err = s.repo.GetRefreshTokenFromRedis(refreshToken)
+	_, err = s.repo.GetRefreshTokenFromRedis(ctx, refreshToken)
 	if err != nil {
 		return res, lib.NewErrUnauthorized("refresh token not found")
 	}
 
-	user, err := s.repo.GetUserByUsername(token.Username)
+	user, err := s.repo.GetUserByUsername(ctx, token.Username)
 	if err != nil {
 		return res, err
 	}
 
-	role, err := s.repo.GetRoleByID(user.RoleID)
+	role, err := s.repo.GetRoleByID(ctx, user.RoleID)
 	if err != nil {
 		return res, err
 	}
@@ -111,7 +112,7 @@ func (s *service) RefreshToken(refreshToken string) (res LoginResponse, err erro
 	if err != nil {
 		return res, lib.NewErrUnauthorized(err.Error())
 	}
-	go s.repo.StoredAccessTokenToRedis(accessToken, user.ID)
+	go s.repo.StoredAccessTokenToRedis(ctx, accessToken, user.ID)
 
 	claimsRefreshToken := lib.NewClaims(user.ID, user.Username, user.Email, s.cfg.App.Name, time.Now().Add(s.cfg.JWT.RefreshExpirationDuration))
 	refreshToken, err = lib.GenerateToken(claimsRefreshToken, s.cfg.JWT.SecretKey)
@@ -119,18 +120,18 @@ func (s *service) RefreshToken(refreshToken string) (res LoginResponse, err erro
 		return res, lib.NewErrUnauthorized(err.Error())
 	}
 
-	go s.repo.StoredRefreshTokenToRedis(refreshToken, user.ID)
+	go s.repo.StoredRefreshTokenToRedis(ctx, refreshToken, user.ID)
 
 	return fromModuleToLoginResponse(user, role, accessToken, refreshToken), nil
 }
 
-func (s *service) Logout(accessToken string) (err error) {
-	_, err = s.repo.GetAccessTokenFromRedis(accessToken)
+func (s *service) Logout(ctx context.Context, accessToken string) (err error) {
+	_, err = s.repo.GetAccessTokenFromRedis(ctx, accessToken)
 	if err != nil {
 		return lib.NewErrUnauthorized("access token not found")
 	}
 
-	err = s.repo.DeleteAccessTokenFromRedis(accessToken)
+	err = s.repo.DeleteAccessTokenFromRedis(ctx, accessToken)
 	if err != nil {
 		return err
 	}

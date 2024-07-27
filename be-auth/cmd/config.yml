@@ -1,8 +1,7 @@
 APP_NAME: "auth-rest-service"
 HTTP_PORT: "8081"
 
-DB_DSN: "postgres://pudinghack:pdhack27@varomnrg.me:5432/sightry?sslmode=disable" 
-# DB_DSN: "postgres://apps:obwMHF3sI%3C87@101.255.118.131:5703/db_pbf?sslmode=disable"
+DB_DSN: "postgres://pudinghack:pdhack27@local:5432/sightry?sslmode=disable" 
 DB_MAX_IDLE_CONNECTIONS: "20"
 DB_MAX_OPEN_CONNECTIONS: "100"
 DB_MAX_IDLE_DURATION_IN_SECS: "60"
