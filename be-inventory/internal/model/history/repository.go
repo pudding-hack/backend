@@ -59,9 +59,9 @@ func (r *repository) GetHistoryTypeByIds(ctx context.Context, ids []int) (res []
 }
 
 func (r *repository) CreateHistory(ctx context.Context, item HistoryItem) error {
-	query := `INSERT INTO history_items (item_id, type_id, qty, created_by, updated_by) VALUES ($1, $2, $3, $4, $5)`
+	query := `INSERT INTO history_items (item_id, type_id, qty, created_by, updated_by, quantity_before, quantity_after) VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
-	_, err := r.db.Exec(ctx, query, item.ItemId, item, item.Quantity, item.CreatedBy, item.UpdatedBy)
+	_, err := r.db.Exec(ctx, query, item.ItemId, item.TypeId, item.Quantity, item.CreatedBy, item.UpdatedBy, item.QuantityBefore, item.QuantityAfter)
 	if err != nil {
 		return err
 	}
