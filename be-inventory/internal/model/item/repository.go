@@ -70,3 +70,13 @@ func (r *repository) UpdateQuantity(ctx context.Context, id, qty int) error {
 
 	return nil
 }
+
+func (r *repository) GetByKeyword(ctx context.Context, keyword string) (Item, error) {
+	var item Item
+	err := r.db.Get(ctx, &item, "SELECT * FROM items WHERE keywords ILIKE $1 AND deleted_at is NULL", "%"+keyword+"%")
+	if err != nil {
+		return Item{}, err
+	}
+
+	return item, nil
+}
