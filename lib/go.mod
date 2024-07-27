@@ -2,7 +2,10 @@ module github.com/pudding-hack/backend/lib
 
 go 1.22.5
 
-require github.com/spf13/viper v1.19.0
+require (
+	github.com/gomodule/redigo v1.9.2
+	github.com/spf13/viper v1.19.0
+)
 
 require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
