@@ -3,6 +3,7 @@ package use_case
 import (
 	"context"
 
+	"github.com/aws/aws-sdk-go-v2/service/rekognition"
 	"github.com/pudding-hack/backend/be-inventory/internal/model/history"
 	"github.com/pudding-hack/backend/be-inventory/internal/model/item"
 	"github.com/pudding-hack/backend/be-inventory/internal/model/unit"
@@ -26,19 +27,25 @@ type historyRepository interface {
 	GetHistoryTypeByIds(ctx context.Context, ids []int) (res []history.HistoryType, err error)
 }
 
-type service struct {
-	cfg      *lib.Config
-	repo     inventoryRepository
-	unitRepo unitRepository
-	histRepo historyRepository
+type awsService interface {
+	DetectLabels(ctx context.Context, params *rekognition.DetectLabelsInput, optFns ...func(*rekognition.Options)) (*rekognition.DetectLabelsOutput, error)
 }
 
-func NewService(cfg *lib.Config, repo inventoryRepository, unitRepo unitRepository, histRepo historyRepository) *service {
+type service struct {
+	cfg        *lib.Config
+	repo       inventoryRepository
+	unitRepo   unitRepository
+	histRepo   historyRepository
+	awsService awsService
+}
+
+func NewService(cfg *lib.Config, repo inventoryRepository, unitRepo unitRepository, histRepo historyRepository, awsService awsService) *service {
 	return &service{
-		cfg:      cfg,
-		repo:     repo,
-		unitRepo: unitRepo,
-		histRepo: histRepo,
+		cfg:        cfg,
+		repo:       repo,
+		unitRepo:   unitRepo,
+		histRepo:   histRepo,
+		awsService: awsService,
 	}
 }
 
