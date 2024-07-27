@@ -38,6 +38,7 @@ type HistoryItem struct {
 	QuantityAfter  int    `json:"qty_after"`
 	TypeId         int    `json:"type_id"`
 	Type           string `json:"type"`
+	CreatedAt      string `json:"created_at"`
 }
 
 func (h *HistoryItem) FromEntity(entity history.HistoryItem, typeName string) {
@@ -48,4 +49,5 @@ func (h *HistoryItem) FromEntity(entity history.HistoryItem, typeName string) {
 	h.Type = typeName
 	h.QuantityBefore = entity.QuantityBefore
 	h.QuantityAfter = entity.QuantityAfter
+	h.CreatedAt = entity.CreatedAt.Format("02 January 2006 15:04:05")
 }
