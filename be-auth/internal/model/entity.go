@@ -8,10 +8,10 @@ import (
 type User struct {
 	ID        string         `json:"id" db:"id"`
 	Name      string         `json:"name" db:"name"`
-	Address   string         `json:"address" db:"address"`
 	Username  string         `json:"username" db:"username"`
 	Email     string         `json:"email" db:"email"`
 	Password  string         `json:"password" db:"password"`
+	Phone     string         `json:"phone" db:"phone"`
 	RoleID    int            `json:"role_id" db:"role_id"`
 	CreatedAt time.Time      `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at" db:"updated_at"`

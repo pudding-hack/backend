@@ -23,9 +23,8 @@ type handler interface {
 
 func Run(ctx context.Context, cfg lib.Config, requestHandler handler) error {
 	router := mux.NewRouter()
-	authMiddleware := lib.NewAuthMiddleware(&cfg)
-
-	router.Use(authMiddleware.ValidateCurrentUser)
+	// authMiddleware := lib.NewAuthMiddleware(&cfg)
+	// router.Use(authMiddleware.ValidateCurrentUser)
 
 	// grouping handler
 	api := router.PathPrefix("/api").Subrouter()

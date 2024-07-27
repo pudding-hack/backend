@@ -1,9 +1,13 @@
 package lib
 
+import "database/sql"
+
 const (
 	ErrTokenExpired              = "TOKEN_EXPIRED"
 	ErrorInsufficientPermissions = "INSUFFICIENT_PERMISSIONS"
 )
+
+var ErrSqlErrorNotFound = sql.ErrNoRows
 
 type ErrBadRequest struct {
 	Message string
