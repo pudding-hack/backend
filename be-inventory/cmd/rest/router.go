@@ -21,6 +21,7 @@ type handler interface {
 	GetItemHistoryPaginate(w http.ResponseWriter, r *http.Request)
 	InboundItem(w http.ResponseWriter, r *http.Request)
 	OutboundItem(w http.ResponseWriter, r *http.Request)
+	DetectLabels(w http.ResponseWriter, r *http.Request)
 }
 
 func Run(ctx context.Context, cfg lib.Config, requestHandler handler) error {
@@ -43,6 +44,9 @@ func Run(ctx context.Context, cfg lib.Config, requestHandler handler) error {
 	// inbound outbound handler
 	inventory.HandleFunc("/inbound", requestHandler.InboundItem).Methods(http.MethodPost)
 	inventory.HandleFunc("/outbound", requestHandler.OutboundItem).Methods(http.MethodPost)
+
+	// rekognition handler
+	inventory.HandleFunc("/rekognition", requestHandler.DetectLabels).Methods(http.MethodPost)
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:     []string{"*"},
