@@ -14,6 +14,8 @@ type service interface {
 	GetByID(ctx context.Context, id int) (use_case.Item, error)
 	Create(ctx context.Context, item item.Item) error
 	GetItemHistoryPaginate(ctx context.Context, id string, request lib.PaginationRequest) (response use_case.GetHistoryResponse, err error)
+	InboundItem(ctx context.Context, name string, qty int) (err error)
+	OutboundItem(ctx context.Context, name string, qty int) (err error)
 }
 
 type Handler struct {
@@ -86,4 +88,52 @@ func (h *Handler) GetItemHistoryPaginate(w http.ResponseWriter, r *http.Request)
 	}
 
 	lib.WriteResponse(w, nil, response)
+}
+
+func (h *Handler) InboundItem(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	type request struct {
+		Name string `json:"name"`
+		Qty  int    `json:"qty"`
+	}
+
+	var req request
+	err := lib.ReadRequest(r, &req)
+	if err != nil {
+		lib.WriteResponse(w, err, nil)
+		return
+	}
+
+	err = h.service.InboundItem(ctx, req.Name, req.Qty)
+	if err != nil {
+		lib.WriteResponse(w, err, nil)
+		return
+	}
+
+	lib.WriteResponse(w, nil, nil)
+}
+
+func (h *Handler) OutboundItem(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	type request struct {
+		Name string `json:"name"`
+		Qty  int    `json:"qty"`
+	}
+
+	var req request
+	err := lib.ReadRequest(r, &req)
+	if err != nil {
+		lib.WriteResponse(w, err, nil)
+		return
+	}
+
+	err = h.service.OutboundItem(ctx, req.Name, req.Qty)
+	if err != nil {
+		lib.WriteResponse(w, err, nil)
+		return
+	}
+
+	lib.WriteResponse(w, nil, nil)
 }

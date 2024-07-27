@@ -16,13 +16,12 @@ type Item struct {
 	Price    float64 `json:"price"`
 }
 
-func (i *Item) FromEntity(entity item.Item, unit string) {
+func (i *Item) FromEntity(entity item.Item) {
 	i.ID = entity.ID
 	i.ItemCode = entity.ItemCode
 	i.ItemName = entity.ItemName
 	i.Quantity = entity.Quantity
 	i.UnitId = entity.UnitId
-	i.Unit = unit
 	i.Price = entity.Price
 }
 
@@ -32,11 +31,13 @@ type GetHistoryResponse struct {
 }
 
 type HistoryItem struct {
-	ID       int    `json:"id"`
-	ItemId   int    `json:"item_id"`
-	Quantity int    `json:"qty"`
-	TypeId   int    `json:"type_id"`
-	Type     string `json:"type"`
+	ID             int    `json:"id"`
+	ItemId         int    `json:"item_id"`
+	Quantity       int    `json:"qty"`
+	QuantityBefore int    `json:"qty_before"`
+	QuantityAfter  int    `json:"qty_after"`
+	TypeId         int    `json:"type_id"`
+	Type           string `json:"type"`
 }
 
 func (h *HistoryItem) FromEntity(entity history.HistoryItem, typeName string) {
@@ -45,4 +46,6 @@ func (h *HistoryItem) FromEntity(entity history.HistoryItem, typeName string) {
 	h.Quantity = entity.Quantity
 	h.TypeId = entity.TypeId
 	h.Type = typeName
+	h.QuantityBefore = entity.QuantityBefore
+	h.QuantityAfter = entity.QuantityAfter
 }

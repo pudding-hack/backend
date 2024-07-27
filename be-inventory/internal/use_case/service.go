@@ -2,10 +2,14 @@ package use_case
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"log"
 
 	"github.com/pudding-hack/backend/be-inventory/internal/model/history"
 	"github.com/pudding-hack/backend/be-inventory/internal/model/item"
 	"github.com/pudding-hack/backend/be-inventory/internal/model/unit"
+	"github.com/pudding-hack/backend/conn"
 	"github.com/pudding-hack/backend/lib"
 )
 
@@ -13,6 +17,8 @@ type inventoryRepository interface {
 	GetAll(ctx context.Context) (res []item.Item, err error)
 	GetByID(ctx context.Context, id int) (item.Item, error)
 	Create(ctx context.Context, item item.Item) error
+	UpdateQuantity(ctx context.Context, id, qty int) error
+	GetByName(ctx context.Context, name string) (item.Item, error)
 }
 
 type unitRepository interface {
@@ -31,15 +37,33 @@ type service struct {
 	repo     inventoryRepository
 	unitRepo unitRepository
 	histRepo historyRepository
+	conn     *conn.SQLServerConnectionManager
+	db       *conn.SingleInstruction
+	tx       *conn.MultiInstruction
 }
 
-func NewService(cfg *lib.Config, repo inventoryRepository, unitRepo unitRepository, histRepo historyRepository) *service {
+func NewService(sql *conn.SQLServerConnectionManager, cfg *lib.Config) *service {
 	return &service{
 		cfg:      cfg,
-		repo:     repo,
-		unitRepo: unitRepo,
-		histRepo: histRepo,
+		db:       sql.GetQuery(),
+		conn:     sql,
+		repo:     item.New(cfg, sql.GetQuery()),
+		unitRepo: unit.New(cfg, sql.GetQuery()),
+		histRepo: history.New(cfg, sql.GetQuery()),
 	}
+}
+
+func (s *service) WithTransaction() {
+	s.tx = s.conn.GetTransaction()
+	s.repo = item.New(s.cfg, s.tx)
+	s.unitRepo = unit.New(s.cfg, s.tx)
+	s.histRepo = history.New(s.cfg, s.tx)
+}
+
+func (s *service) WithoutTransaction() {
+	s.repo = item.New(s.cfg, s.db)
+	s.unitRepo = unit.New(s.cfg, s.db)
+	s.histRepo = history.New(s.cfg, s.db)
 }
 
 func (s *service) GetAll(ctx context.Context) (res []Item, err error) {
@@ -64,7 +88,8 @@ func (s *service) GetAll(ctx context.Context) (res []Item, err error) {
 
 	for _, inventory := range inventories {
 		var i Item
-		i.FromEntity(inventory, unitMap[inventory.UnitId].UnitName)
+		i.FromEntity(inventory)
+		i.Unit = unitMap[inventory.UnitId].UnitName
 		res = append(res, i)
 	}
 
@@ -74,16 +99,25 @@ func (s *service) GetAll(ctx context.Context) (res []Item, err error) {
 func (s *service) GetByID(ctx context.Context, id int) (Item, error) {
 	inventory, err := s.repo.GetByID(ctx, id)
 	if err != nil {
+		if errors.Is(err, lib.ErrSqlErrorNotFound) {
+			return Item{}, lib.NewErrNotFound("Item not found")
+		}
+
 		return Item{}, err
 	}
 
 	unit, err := s.unitRepo.GetUnitById(ctx, inventory.UnitId)
 	if err != nil {
+		if errors.Is(err, lib.ErrSqlErrorNotFound) {
+			return Item{}, lib.NewErrNotFound("Unit not found")
+		}
+
 		return Item{}, err
 	}
 
 	var i Item
-	i.FromEntity(inventory, unit.UnitName)
+	i.FromEntity(inventory)
+	i.Unit = unit.UnitName
 
 	return i, nil
 }
@@ -102,6 +136,10 @@ func (s *service) GetItemHistoryPaginate(ctx context.Context, id string, request
 	histories, meta, err := s.histRepo.GetByID(ctx, id, request)
 	if err != nil {
 		return
+	}
+
+	if len(histories) == 0 {
+		return response, lib.NewErrNotFound("History not found")
 	}
 
 	historiesTypeIds := []int{}
@@ -130,19 +168,52 @@ func (s *service) GetItemHistoryPaginate(ctx context.Context, id string, request
 	return response, nil
 }
 
-func (s *service) InboundItem(ctx context.Context, id int, qty int) (err error) {
-	item, err := s.repo.GetByID(ctx, id)
+func (s *service) InboundItem(ctx context.Context, name string, qty int) (err error) {
+	s.WithTransaction()
+
+	defer func() {
+		if p := recover(); p != nil {
+			s.tx.Rollback(ctx)
+			err = fmt.Errorf("panic: %v", p)
+		} else if err != nil {
+			s.tx.Rollback(ctx)
+		} else {
+			log.Println("Commit")
+			s.tx.Commit(ctx)
+		}
+		s.WithoutTransaction()
+	}()
+
+	s.tx.Begin(ctx)
+
+	user := lib.GetUserContext(ctx)
+
+	item, err := s.repo.GetByName(ctx, name)
 	if err != nil {
-		return
+		if errors.Is(err, lib.ErrSqlErrorNotFound) {
+			return lib.NewErrNotFound("Item not found")
+		}
 	}
 
 	historyItem := history.HistoryItem{
-		ItemId:   item.ID,
-		Quantity: qty,
-		TypeId:   1,
+		ItemId:         item.ID,
+		Quantity:       qty,
+		TypeId:         1,
+		QuantityBefore: item.Quantity,
+		QuantityAfter:  item.Quantity + qty,
+		CreatedBy:      user.ID,
+		UpdatedBy:      user.ID,
 	}
 
 	err = s.histRepo.CreateHistory(ctx, historyItem)
+	if err != nil {
+		if errors.Is(err, lib.ErrSqlErrorNotFound) {
+			return lib.NewErrNotFound("Item not found")
+		}
+		return err
+	}
+
+	err = s.repo.UpdateQuantity(ctx, item.ID, qty)
 	if err != nil {
 		return err
 	}
@@ -150,19 +221,47 @@ func (s *service) InboundItem(ctx context.Context, id int, qty int) (err error) 
 	return nil
 }
 
-func (s *service) OutboundItem(ctx context.Context, id int, qty int) (err error) {
-	item, err := s.repo.GetByID(ctx, id)
+func (s *service) OutboundItem(ctx context.Context, name string, qty int) (err error) {
+	s.WithTransaction()
+
+	defer func() {
+		if p := recover(); p != nil {
+			s.tx.Rollback(ctx)
+			err = fmt.Errorf("panic: %v", p)
+		} else if err != nil {
+			s.tx.Rollback(ctx)
+		} else {
+			log.Println("Commit")
+			s.tx.Commit(ctx)
+		}
+		s.WithoutTransaction()
+	}()
+
+	s.tx.Begin(ctx)
+
+	user := lib.GetUserContext(ctx)
+
+	item, err := s.repo.GetByName(ctx, name)
 	if err != nil {
 		return
 	}
 
 	historyItem := history.HistoryItem{
-		ItemId:   item.ID,
-		Quantity: qty,
-		TypeId:   2,
+		ItemId:         item.ID,
+		Quantity:       qty,
+		TypeId:         2,
+		QuantityBefore: item.Quantity,
+		QuantityAfter:  item.Quantity - qty,
+		CreatedBy:      user.ID,
+		UpdatedBy:      user.ID,
 	}
 
 	err = s.histRepo.CreateHistory(ctx, historyItem)
+	if err != nil {
+		return err
+	}
+
+	err = s.repo.UpdateQuantity(ctx, item.ID, -qty)
 	if err != nil {
 		return err
 	}
