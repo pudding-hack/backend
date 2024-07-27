@@ -1,0 +1,22 @@
+FROM golang:1.22-alpine AS builder
+
+WORKDIR /app
+COPY ./go.work ./go.work
+COPY ./go.work.sum ./go.work.sum
+COPY ./lib ./lib
+COPY ./be-auth ./be-auth
+COPY ./conn ./conn
+
+WORKDIR /app/lib
+RUN go mod download
+
+WORKDIR /app/be-auth
+RUN go mod download
+
+RUN mkdir -p /usr/bin && CGO_ENABLED=0 go build -o /usr/bin/be-auth ./cmd
+
+FROM alpine
+
+COPY --from=builder /usr/bin/be-auth /usr/bin/be-auth
+
+CMD ["be-auth"]

@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:latest
+    container_name: redis
+    volumes:
+      - redis-data:/data
+    networks:
+      - local
+
+  reverse-proxy:
+    build:
+      context: .
+      dockerfile: ./reverse-proxy/Dockerfile
+    restart: on-failure
+    volumes:
+      - "/run/docker.sock:/run/run/docker.sock:ro"
+    networks:
+      - local
+      - external
+    ports:
+      - '8001:80'
+    depends_on:
+      - auth-service
+    
+  auth-service:
+    hostname: auth-service-host
+    build:
+      context: .
+      dockerfile: ./be-auth/Dockerfile
+    restart: on-failure
+    networks:
+      - local
+    volumes:
+      - ./be-auth/cmd/config.yml:/cmd/config.yml
+    depends_on:
+      - redis
+    environment:
+      APP_NAME: "auth-rest-service"
+      HTTP_PORT: "80"
+      DB_DSN: "postgres://pudinghack:pdhack27@localhost:5432/sightry?sslmode=disable"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ""
+
+networks:
+  local:
+    external: false
+  external:
+    external: true
+
+volumes:
+  redis-data:

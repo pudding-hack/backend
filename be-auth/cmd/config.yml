@@ -1,0 +1,17 @@
+APP_NAME: "auth-rest-service"
+HTTP_PORT: "8081"
+
+DB_DSN: "postgres://pudinghack:pdhack27@local:5432/sightry?sslmode=disable" 
+DB_MAX_IDLE_CONNECTIONS: "20"
+DB_MAX_OPEN_CONNECTIONS: "100"
+DB_MAX_IDLE_DURATION_IN_SECS: "60"
+DB_MAX_LIFE_TIME_DURATION_IN_SECS: "300"
+
+REDIS_HOST: "localhost"
+REDIS_PORT: "6379"
+REDIS_PASSWORD: ""
+REDIS_MAX_IDLE: "10"
+
+JWT_SECRET_KEY: "JWT_SECRET_KEY_APP_APOTEK_PBF))(**"
+
+API_AUTH_URL: "http://localhost:8081/api/auth"
