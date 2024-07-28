@@ -39,8 +39,19 @@ Setup your docker compose file and replace the environment variables with your o
 ```bash
 $ docker-compose up -d --build
 ```
-
 When docker is running, you can access the application on the port you set up in the docker-compose file, the default is http://localhost:8081
+
+#### Notes : 
+On the docker-compose.yaml file you would also need to add these following environment variable on the Inventory Service to be able to use the image rekognition service from AWS.
+
+```bash
+AWS_ACCESS_KEY_ID=<aws access key ID>
+AWS_SECRET_ACCESS_KEY=<aws access key>
+AWS_REGION=<aws region>
+```
+
+But, we hosted a demo api for testing purposes https://puddinghack.varomnrg.me/api
+
 
 ## Author
 
