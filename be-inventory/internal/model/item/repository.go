@@ -31,7 +31,7 @@ func (r *repository) GetByName(ctx context.Context, name string) (Item, error) {
 
 func (r *repository) GetAll(ctx context.Context) (res []Item, err error) {
 	var item []Item
-	err = r.db.Select(ctx, &item, "SELECT * FROM items WHERE deleted_at is NULL")
+	err = r.db.Select(ctx, &item, "SELECT * FROM items WHERE deleted_at is NULL ORDER BY item_name ASC")
 	if err != nil {
 		return []Item{}, err
 	}

@@ -33,4 +33,4 @@ $ git clone https://github.com/pudding-hack/backend
 ## Author
 
 - [Timothy Aurelio Cannavaro](https://githuub.com/varomnrg) - Backend
-- [Nanda Wijaya Putra]() - Backend
+- [Nanda Wijaya Putra](https://github.com/nanwp) - Backend
